@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Idle Outpost – Calculadora</title>
+<meta name="theme-color" content="#0f0f0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="IO Calc">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@200;300;400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0f0f0f;
+    --surf:      #181818;
+    --surf2:     #202020;
+    --border:    #2a2a2a;
+    --border2:   #353535;
+    --text:      #efefef;
+    --sub:       #555;
+    --dim:       #333;
+    --accent:    #e04f4f;
+    --accent-lt: #f07070;
+    --green:     #58a86a;
+    --sand:      #c8a96e;
+    --sand-lt:   #e2c98a;
+    --white:     #fff;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 24px 12px;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    padding: 0 4px 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .header-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--dim);
+    margin-bottom: 10px;
+  }
+  .tabs {
+    display: flex;
+    gap: 28px;
+  }
+  .tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .tab-label {
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--sub);
+    transition: color .2s;
+  }
+  .tab.active .tab-label { color: var(--text); font-weight: 400; }
+  .tab-line {
+    width: 28px; height: 2px;
+    background: var(--accent);
+    border-radius: 1px;
+    transform: scaleX(0);
+    transition: transform .25s cubic-bezier(.4,0,.2,1);
+    transform-origin: left;
+  }
+  .tab.active .tab-line { transform: scaleX(1); }
+
+  /* ── SCREEN ── */
+  .screen {
+    padding: 8px 4px 16px;
+    text-align: right;
+  }
+  .screen-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--sub);
+    min-height: 16px;
+    transition: color .2s;
+  }
+  .screen-main {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 58px;
+    font-weight: 200;
+    color: var(--text);
+    line-height: 1.1;
+    min-height: 68px;
+    word-break: break-all;
+    transition: color .15s;
+  }
+  .screen-main.flash { color: var(--accent); }
+  .screen-status {
+    font-size: 12px;
+    color: var(--sub);
+    min-height: 18px;
+    margin-top: 4px;
+    transition: color .2s, opacity .3s;
+    font-family: 'DM Mono', monospace;
+  }
+  .screen-status.ok    { color: var(--green); }
+  .screen-status.error { color: var(--accent); }
+
+  /* ── CAMPO CHIPS ── */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .chip {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surf2);
+    color: var(--sub);
+    cursor: pointer;
+    transition: border-color .2s, color .2s;
+    user-select: none;
+  }
+  .chip.active {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ── SUFIJOS ── */
+  .suffix-section { margin-bottom: 10px; }
+  .suffix-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+  .suffix-row-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: var(--dim);
+    margin-bottom: 4px;
+  }
+  .suf-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 4px 7px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: #141414;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+    user-select: none;
+  }
+  .suf-btn:active { transform: scale(.92); }
+  .suf-btn.tier-base { color: var(--sand); }
+  .suf-btn.tier-a    { color: var(--accent); border-color: #2a1a1a; }
+  .suf-btn.tier-b    { color: #c87060;       border-color: #2a1e1a; }
+  .suf-btn.tier-c    { color: #a060c8;       border-color: #1e1a2a; }
+  .suf-btn.tier-d    { color: #60a8c8;       border-color: #1a222a; }
+  .suf-btn:hover { background: var(--surf2); }
+
+  /* ── KEYPAD ── */
+  .keypad { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .key-row { display: flex; gap: 8px; }
+  .key {
+    flex: 1;
+    height: 58px;
+    border-radius: 14px;
+    border: none;
+    background: var(--surf2);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 22px;
+    font-weight: 300;
+    cursor: pointer;
+    transition: background .12s, transform .1s;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .key:active { transform: scale(.94); }
+  .key:hover  { background: #2a2a2a; }
+  .key.key-fn   { background: #1e1e1e; color: var(--sub);    font-size: 18px; }
+  .key.key-fn:hover { background: #282828; }
+  .key.key-clear { background: #1f1010; color: var(--accent); font-size: 18px; }
+  .key.key-clear:hover { background: #2a1414; }
+  .key.key-nav  { background: var(--surf2); color: var(--sub); font-size: 16px; }
+  .key.key-ver  { background: #111e14; color: var(--green);  font-size: 13px;
+                  font-family: 'DM Mono', monospace; letter-spacing: 1px; font-weight: 500; }
+  .key.key-ver:hover { background: #162419; }
+  .key.key-calc {
+    background: var(--accent);
+    color: var(--white);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 2px;
+    font-weight: 500;
+  }
+  .key.key-calc:hover { background: var(--accent-lt); }
+
+  /* ── TABLA ── */
+  .tabla-wrap {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    margin-top: 4px;
+    animation: fadeIn .3s ease;
+  }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+  }
+  thead tr { background: var(--surf2); }
+  thead th {
+    padding: 8px 10px;
+    text-align: left;
+    color: var(--sub);
+    font-weight: 500;
+    letter-spacing: 1px;
+    font-size: 9px;
+  }
+  tbody tr { border-top: 1px solid var(--border); transition: background .1s; }
+  tbody tr:hover { background: #1e1e1e; }
+  tbody tr.goal-row { background: #0e1f10 !important; }
+  tbody td { padding: 7px 10px; }
+  .td-num   { color: var(--sand); }
+  .td-pago  { color: var(--accent); }
+  .td-total { color: var(--text); font-weight: 500; }
+  .td-total.goal { color: var(--green); font-weight: 600; }
+  .td-estado { color: var(--sub); }
+  .td-estado.goal { color: var(--green); }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-eyebrow">⛺ IDLE OUTPOST · CALCULADORA</div>
+    <div class="tabs">
+      <div class="tab active" id="tab-meta" onclick="switchModo('META')">
+        <span class="tab-label">Meta AI</span>
+        <div class="tab-line"></div>
+      </div>
+      <div class="tab" id="tab-videos" onclick="switchModo('VIDEOS')">
+        <span class="tab-label">Nº Videos</span>
+        <div class="tab-line"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN -->
+  <div class="screen">
+    <div class="screen-label" id="screen-label">PATRIMONIO ACTUAL</div>
+    <div class="screen-main"  id="screen-main">0</div>
+    <div class="screen-status" id="screen-status"></div>
+  </div>
+
+  <!-- CHIPS -->
+  <div class="chips" id="chips"></div>
+
+  <!-- SUFIJOS -->
+  <div class="suffix-section">
+    <div class="suffix-row-label">SUFIJOS RÁPIDOS</div>
+    <div class="suffix-row">
+      <button class="suf-btn tier-base" onclick="pressSuffix('k')">K</button>
+      <button class="suf-btn tier-base" onclick="pressSuffix('m')">M</button>
+      <button class="suf-btn tier-base" onclick="pressSuffix('b')">B</button>
+      <button class="suf-btn tier-base" onclick="pressSuffix('t')">T</button>
+    </div>
+    <div id="suffix-rows-aa"></div>
+  </div>
+
+  <!-- KEYPAD -->
+  <div class="keypad">
+    <div class="key-row">
+      <button class="key key-clear" onclick="pressClear()">C</button>
+      <button class="key key-fn"    onclick="pressBack()">⌫</button>
+      <button class="key key-nav"   onclick="prevField()">◀</button>
+      <button class="key key-nav"   onclick="nextField()">▶</button>
+    </div>
+    <div class="key-row">
+      <button class="key" onclick="pressDigit('7')">7</button>
+      <button class="key" onclick="pressDigit('8')">8</button>
+      <button class="key" onclick="pressDigit('9')">9</button>
+      <button class="key key-ver" onclick="verTabla()">VER<br>TABLA</button>
+    </div>
+    <div class="key-row">
+      <button class="key" onclick="pressDigit('4')">4</button>
+      <button class="key" onclick="pressDigit('5')">5</button>
+      <button class="key" onclick="pressDigit('6')">6</button>
+      <button class="key key-fn"  onclick="pressDigit('.')">.</button>
+    </div>
+    <div class="key-row">
+      <button class="key" onclick="pressDigit('1')">1</button>
+      <button class="key" onclick="pressDigit('2')">2</button>
+      <button class="key" onclick="pressDigit('3')">3</button>
+      <button class="key" onclick="pressDigit('0')">0</button>
+    </div>
+    <div class="key-row">
+      <button class="key key-calc" onclick="calcular()">CALCULAR</button>
+    </div>
+  </div>
+
+  <!-- TABLA -->
+  <div id="tabla-container"></div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────
+//  NOTACIÓN IDLE OUTPOST
+// ─────────────────────────────────────────────────────
+const ALPHA = 'abcdefghijklmnopqrstuvwxyz'.split('');
+const SUFFIXES = ['', 'K', 'M', 'B', 'T'];
+for (const a of ALPHA) for (const b of ALPHA) SUFFIXES.push(a + b);
+for (const a of ALPHA) for (const b of ALPHA) for (const c of ALPHA) SUFFIXES.push(a + b + c);
+
+function parseIO(text) {
+  text = text.trim().replace(',', '.');
+  if (!text) return NaN;
+  if (/^-?[\d.]+$/.test(text)) return parseFloat(text);
+  const match = text.match(/^(-?[\d.]+)([a-zA-Z]+)$/);
+  if (!match) return NaN;
+  const coeff = parseFloat(match[1]);
+  const suf   = match[2].toLowerCase();
+  const std   = { k:1, m:2, b:3, t:4 };
+  if (std[suf] !== undefined) return coeff * Math.pow(1000, std[suf]);
+  const idx = SUFFIXES.findIndex(s => s.toLowerCase() === suf);
+  if (idx >= 5) return coeff * Math.pow(10, idx * 3);
+  return NaN;
+}
+
+function formatIO(n) {
+  if (!isFinite(n) || isNaN(n)) return '∞';
+  if (n < 0) return '-' + formatIO(-n);
+  if (n < 1000) {
+    const v = Math.round(n * 100) / 100;
+    return v === Math.floor(v) ? String(Math.floor(v)) : String(v);
+  }
+  const log  = Math.log10(Math.max(n, 1e-300));
+  let tier   = Math.floor(log / 3);
+  tier = Math.max(1, Math.min(tier, SUFFIXES.length - 1));
+  const val  = n / Math.pow(10, tier * 3);
+  let fmt;
+  if (val >= 100)     fmt = val.toFixed(0);
+  else if (val >= 10) fmt = val.toFixed(1);
+  else                fmt = val.toFixed(2);
+  fmt = fmt.replace(/\.?0+$/, '');
+  return fmt + SUFFIXES[tier].toUpperCase();
+}
+
+function simulate(money, lastPay, rate, stopAt = null, maxVideos = 500000) {
+  let cur = money, pay = lastPay;
+  const rows = [];
+  while (rows.length < maxVideos) {
+    pay *= (1 + rate);
+    cur += pay;
+    rows.push({ payout: pay, cumulative: cur });
+    if (stopAt && cur >= stopAt) break;
+  }
+  return rows;
+}
+
+// ─────────────────────────────────────────────────────
+//  ESTADO
+// ─────────────────────────────────────────────────────
+const CAMPOS = ['patrimonio', 'pago', 'tasa', 'objetivo'];
+const st = {
+  patrimonio: null,
+  pago:       null,
+  tasa:       0.444,
+  objetivo:   null,
+  modo:       'META',
+  campo:      'patrimonio',
+  inputStr:   '',
+};
+
+const LABELS = {
+  patrimonio: 'PATRIMONIO ACTUAL',
+  pago:       'ÚLTIMO PAGO',
+  tasa:       'TASA % POR VIDEO',
+  get objetivo() { return st.modo === 'META' ? 'META DE AI' : 'Nº VIDEOS'; },
+};
+
+// ─────────────────────────────────────────────────────
+//  DOM UPDATES
+// ─────────────────────────────────────────────────────
+function refreshScreen() {
+  document.getElementById('screen-label').textContent = LABELS[st.campo];
+  const mainEl = document.getElementById('screen-main');
+  mainEl.textContent = st.inputStr || '0';
+  mainEl.classList.remove('flash');
+  void mainEl.offsetWidth; // reflow para re-trigger
+}
+
+function setStatus(msg, type = '') {
+  const el = document.getElementById('screen-status');
+  el.textContent = msg;
+  el.className = 'screen-status' + (type ? ' ' + type : '');
+}
+
+function refreshChips() {
+  const container = document.getElementById('chips');
+  container.innerHTML = '';
+  const defs = [
+    { label: 'PATRIMONIO', campo: 'patrimonio' },
+    { label: 'ÚLTIMO PAGO', campo: 'pago' },
+    { label: 'TASA %', campo: 'tasa' },
+    { label: st.modo === 'META' ? 'META AI' : 'Nº VIDEOS', campo: 'objetivo' },
+  ];
+  for (const d of defs) {
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (st.campo === d.campo ? ' active' : '');
+    chip.textContent = d.label;
+    chip.onclick = () => goField(d.campo);
+    container.appendChild(chip);
+  }
+}
+
+// ─────────────────────────────────────────────────────
+//  SUFIJOS DINÁMICOS
+// ─────────────────────────────────────────────────────
+const SUFFIX_TIERS = [
+  { prefix: 'a', cls: 'tier-a' },
+];
+
+function buildSuffixRows() {
+  const container = document.getElementById('suffix-rows-aa');
+  container.innerHTML = '';
+  for (const tier of SUFFIX_TIERS) {
+    const row = document.createElement('div');
+    row.className = 'suffix-row';
+    for (const c of ALPHA) {
+      const s = tier.prefix + c;
+      const btn = document.createElement('button');
+      btn.className = 'suf-btn ' + tier.cls;
+      btn.textContent = s.toUpperCase();
+      btn.onclick = () => pressSuffix(s);
+      row.appendChild(btn);
+    }
+    container.appendChild(row);
+  }
+}
+
+// ─────────────────────────────────────────────────────
+//  LÓGICA DE CAMPOS
+// ─────────────────────────────────────────────────────
+function commitField() {
+  const raw = st.inputStr;
+  if (st.campo === 'tasa') {
+    const v = parseFloat(raw);
+    st.tasa = isNaN(v) ? 0.444 : v / 100;
+  } else {
+    const v = parseIO(raw);
+    if (!isNaN(v)) st[st.campo] = v;
+  }
+}
+
+function goField(campo) {
+  commitField();
+  st.campo = campo;
+  if (campo === 'tasa') {
+    const pct = Math.round(st.tasa * 100 * 10000) / 10000;
+    st.inputStr = String(pct).replace(/\.?0+$/, '');
+  } else if (st[campo] !== null) {
+    st.inputStr = formatIO(st[campo]);
+  } else {
+    st.inputStr = '';
+  }
+  refreshScreen();
+  refreshChips();
+  setStatus('');
+}
+
+function nextField() { goField(CAMPOS[(CAMPOS.indexOf(st.campo) + 1) % CAMPOS.length]); }
+function prevField() { goField(CAMPOS[(CAMPOS.indexOf(st.campo) + CAMPOS.length - 1) % CAMPOS.length]); }
+
+// ─────────────────────────────────────────────────────
+//  ENTRADA
+// ─────────────────────────────────────────────────────
+function pressDigit(d) {
+  let s = st.inputStr;
+  if (d === '.' && s.includes('.')) return;
+  // si hay sufijo al final y entra dígito → quitar sufijo
+  if (/\d/.test(d) && s && /[a-zA-Z]$/.test(s)) {
+    s = s.replace(/[a-zA-Z]+$/, '');
+  }
+  if (s === '0' && d !== '.') s = d;
+  else s += d;
+  st.inputStr = s;
+  refreshScreen();
+}
+
+function pressBack() {
+  st.inputStr = st.inputStr.slice(0, -1);
+  refreshScreen();
+}
+
+function pressClear() {
+  st.inputStr = '';
+  st[st.campo] = null;
+  refreshScreen();
+  setStatus('');
+}
+
+function pressSuffix(suf) {
+  let s = st.inputStr.replace(/[a-zA-Z]+$/, '');
+  if (!s) s = '1';
+  st.inputStr = s + suf;
+  refreshScreen();
+}
+
+// ─────────────────────────────────────────────────────
+//  CÁLCULO
+// ─────────────────────────────────────────────────────
+function calcular() {
+  commitField();
+  const money = st.patrimonio;
+  const pay   = st.pago;
+  const tasa  = st.tasa;
+
+  if (!money || !pay || isNaN(money) || isNaN(pay)) {
+    setStatus('⚠  Ingresá patrimonio y último pago', 'error');
+    return;
+  }
+
+  if (st.modo === 'META') {
+    const target = st.objetivo;
+    if (!target || isNaN(target) || target <= money) {
+      setStatus('⚠  La meta debe ser mayor al patrimonio', 'error');
+      return;
+    }
+    const rows  = simulate(money, pay, tasa, target);
+    const final = rows[rows.length - 1].cumulative;
+    const gain  = final - money;
+    setStatus(`🎯  ${rows.length} videos  ·  +${formatIO(gain)}  →  ${formatIO(final)}`, 'ok');
+  } else {
+    const count = Math.floor(st.objetivo || 0);
+    if (count <= 0) { setStatus('⚠  Ingresá cantidad de videos', 'error'); return; }
+    const rows  = simulate(money, pay, tasa, null, count);
+    const final = rows[rows.length - 1].cumulative;
+    const last  = rows[rows.length - 1].payout;
+    setStatus(`📺  ${count} videos  ·  último: ${formatIO(last)}  →  ${formatIO(final)}`, 'ok');
+  }
+
+  // flash animación
+  const mainEl = document.getElementById('screen-main');
+  mainEl.classList.add('flash');
+  setTimeout(() => mainEl.classList.remove('flash'), 300);
+}
+
+// ─────────────────────────────────────────────────────
+//  TABLA
+// ─────────────────────────────────────────────────────
+function verTabla() {
+  commitField();
+  const money = st.patrimonio;
+  const pay   = st.pago;
+  const tasa  = st.tasa;
+
+  if (!money || !pay) { setStatus('⚠  Ingresá patrimonio y último pago', 'error'); return; }
+
+  let rows, targetVal = null;
+  if (st.modo === 'META') {
+    targetVal = st.objetivo;
+    if (!targetVal || targetVal <= money) { setStatus('⚠  Meta debe ser mayor al patrimonio', 'error'); return; }
+    rows = simulate(money, pay, tasa, targetVal);
+  } else {
+    const count = Math.floor(st.objetivo || 0);
+    if (count <= 0) { setStatus('⚠  Ingresá cantidad de videos', 'error'); return; }
+    rows = simulate(money, pay, tasa, null, count);
+  }
+
+  // muestreo máx 300 filas
+  const step  = Math.max(1, Math.floor(rows.length / 300));
+  const shown = rows.filter((_, i) => i % step === 0);
+  if (!shown.includes(rows[rows.length - 1])) shown.push(rows[rows.length - 1]);
+
+  let goalDone = false;
+  let html = `<div class="tabla-wrap">
+    <table>
+      <thead><tr>
+        <th>#</th><th>PAGO</th><th>TOTAL</th><th>ESTADO</th>
+      </tr></thead>
+      <tbody>`;
+
+  for (const row of shown) {
+    const realI   = rows.indexOf(row) + 1;
+    const isGoal  = targetVal && !goalDone && row.cumulative >= targetVal;
+    if (isGoal) goalDone = true;
+    const isPast  = targetVal && row.cumulative >= targetVal;
+    const estado  = isGoal ? '🎯 META' : (isPast ? '✅' : '—');
+    html += `<tr class="${isGoal ? 'goal-row' : ''}">
+      <td class="td-num">${realI}</td>
+      <td class="td-pago">+${formatIO(row.payout)}</td>
+      <td class="td-total${isGoal ? ' goal' : ''}">${formatIO(row.cumulative)}</td>
+      <td class="td-estado${isGoal ? ' goal' : ''}">${estado}</td>
+    </tr>`;
+  }
+
+  html += '</tbody></table></div>';
+  document.getElementById('tabla-container').innerHTML = html;
+}
+
+// ─────────────────────────────────────────────────────
+//  SWITCH MODO
+// ─────────────────────────────────────────────────────
+function switchModo(modo) {
+  st.modo      = modo;
+  st.objetivo  = null;
+  st.inputStr  = '';
+  st.campo     = 'objetivo';
+
+  document.getElementById('tab-meta').classList.toggle('active',   modo === 'META');
+  document.getElementById('tab-videos').classList.toggle('active', modo === 'VIDEOS');
+
+  document.getElementById('tabla-container').innerHTML = '';
+  refreshScreen();
+  refreshChips();
+  setStatus('');
+}
+
+// ─────────────────────────────────────────────────────
+//  TECLADO FÍSICO
+// ─────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key >= '0' && e.key <= '9') { pressDigit(e.key); return; }
+  if (e.key === '.')                 { pressDigit('.'); return; }
+  if (e.key === 'Backspace')         { pressBack(); return; }
+  if (e.key === 'Enter')             { calcular(); return; }
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    e.shiftKey ? prevField() : nextField();
+    return;
+  }
+  if (e.key === 'Escape') { pressClear(); return; }
+  // letras → sufijo
+  if (/^[a-zA-Z]$/.test(e.key)) {
+    const s = st.inputStr;
+    const hasSuf = /[a-zA-Z]$/.test(s);
+    const newSuf = hasSuf
+      ? s.replace(/[a-zA-Z]+$/, '') + s.match(/[a-zA-Z]+$/)[0] + e.key.toLowerCase()
+      : s + e.key.toLowerCase();
+    st.inputStr = newSuf || e.key.toLowerCase();
+    refreshScreen();
+  }
+});
+
+// ─────────────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────────────
+buildSuffixRows();
+refreshChips();
+refreshScreen();
+</script>
+<!-- Banner instalación -->
+<div id="install-banner" style="
+  display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+  background:#1a1a1a; border:1px solid #e04f4f; border-radius:14px;
+  padding:12px 20px; gap:12px; align-items:center;
+  font-family:'DM Mono',monospace; font-size:11px; color:#efefef;
+  box-shadow:0 8px 32px rgba(0,0,0,.6); z-index:999; white-space:nowrap;
+">
+  ⛺ Instalá la app en tu dispositivo
+  <button onclick="installApp()" style="
+    background:#e04f4f; color:#fff; border:none; border-radius:8px;
+    padding:6px 14px; font-family:'DM Mono',monospace; font-size:11px;
+    cursor:pointer; font-weight:500; letter-spacing:1px;
+  ">INSTALAR</button>
+  <button onclick="document.getElementById('install-banner').style.display='none'" style="
+    background:transparent; color:#555; border:none; font-size:16px;
+    cursor:pointer; padding:0 4px;
+  ">✕</button>
+</div>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(r => console.log('SW registrado:', r.scope))
+      .catch(e => console.log('SW error:', e));
+  });
+}
+
+// Banner de instalación personalizado
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Mostrar banner
+  const banner = document.getElementById('install-banner');
+  if (banner) banner.style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', () => {
+  const banner = document.getElementById('install-banner');
+  if (banner) banner.style.display = 'none';
+  deferredPrompt = null;
+});
+
+function installApp() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+  }
+}
+</script>
+</body>
+</html>
